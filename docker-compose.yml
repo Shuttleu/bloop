@@ -1,0 +1,89 @@
+version: '3.1'
+
+services:
+
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: supersecretpostgrespassword
+    volumes:
+      - ./db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    networks:
+      - bloop
+
+  bloop-server:
+    build: ./bloop-server
+    ports:
+      - 12345:12345
+    environment:
+      - DB_USER=postgres
+      - DB_PASS=supersecretpostgrespassword
+      - DB=postgres
+      - DB_ADDRESS=db
+      - DB_PORT=5432
+      - FIRST_RUN=True
+      - BADGE_API_URL=https://graze-api.scotiacon.org.uk/export/api/0.1/badge-lookup
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - bloop
+
+  bloop-api:
+    build: ./bloop-api
+    environment:
+      - DB_USER=postgres
+      - DB_PASS=supersecretpostgrespassword
+      - DB=postgres
+      - DB_ADDRESS=db
+      - DB_PORT=5432
+    labels:
+      - "traefik.docker.network=traefik"
+      - "traefik.enable=true"
+      - "traefik.http.middlewares.bloopapi-http-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.bloopapi-ssl.entrypoints=websecure"
+      - "traefik.http.routers.bloopapi-ssl.rule=Host(`bloop-api-staging.scotiacon.org.uk`)"
+      - "traefik.http.routers.bloopapi-ssl.service=bloopapi"
+      - "traefik.http.routers.bloopapi-ssl.tls=true"
+      - "traefik.http.routers.bloopapi.entrypoints=web"
+      - "traefik.http.routers.bloopapi.middlewares=bloopapi-http-redirect"
+      - "traefik.http.routers.bloopapi.rule=Host(`bloop-api-staging.scotiacon.org.uk`)"
+      - "traefik.http.services.bloopapi.loadbalancer.server.port=80"
+    networks:
+      - bloop
+      - traefik
+    depends_on:
+      db:
+        condition: service_healthy
+
+  bloop-leaderboard:
+    build: ./bloop-leaderboard
+    labels:
+      - "traefik.docker.network=traefik"
+      - "traefik.enable=true"
+      - "traefik.http.middlewares.bloop-http-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.bloop-ssl.entrypoints=websecure"
+      - "traefik.http.routers.bloop-ssl.rule=Host(`bloop-staging.scotiacon.org.uk`)"
+      - "traefik.http.routers.bloop-ssl.service=bloop"
+      - "traefik.http.routers.bloop-ssl.tls=true"
+      - "traefik.http.routers.bloop.entrypoints=web"
+      - "traefik.http.routers.bloop.middlewares=bloop-http-redirect"
+      - "traefik.http.routers.bloop.rule=Host(`bloop-staging.scotiacon.org.uk`)"
+      - "traefik.http.services.bloop.loadbalancer.server.port=80"
+    networks:
+      - bloop
+      - traefik
+    depends_on:
+      - bloop-api
+
+networks:
+  bloop:
+  traefik:
+    external: true
