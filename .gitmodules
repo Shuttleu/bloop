@@ -1,0 +1,9 @@
+[submodule "bloop-server"]
+	path = bloop-server
+	url = https://github.com/Shuttleu/bloop-server
+[submodule "bloop-api"]
+	path = bloop-api
+	url = https://github.com/Shuttleu/bloop-api
+[submodule "bloop-leaderboard"]
+	path = bloop-leaderboard
+	url = https://github.com/Shuttleu/bloop-leaderboard
