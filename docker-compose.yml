@@ -29,7 +29,8 @@ services:
       - DB_ADDRESS=db
       - DB_PORT=5432
       - FIRST_RUN=True
-      - BADGE_API_URL=https://graze-api.scotiacon.org.uk/export/api/0.1/badge-lookup
+      - BADGE_API_URL=ApiUrl
+      - BADGE_API_KEY=ApiKey
     depends_on:
       db:
         condition: service_healthy
